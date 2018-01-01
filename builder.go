@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	"net/url"
+	"strings"
 	"time"
 )
 
@@ -140,14 +141,22 @@ type Builder interface {
 	Date(time.Time, DateFormat) Builder
 	Phoneme(string, Alphabet, string) Builder
 	String() string
+	Raw() string
 }
 
 type builder struct {
 	buf bytes.Buffer
+	// rawBuf is the same as buf, but without any ssml tags--just the text.
+	// This is good for outputting user-friendly readable text while building
+	// the ssml output
+	rawBuf bytes.Buffer
 }
 
 func (r *builder) Text(text string) Builder {
 	r.buf.WriteString(text)
+	if !strings.HasPrefix(text, "<") {
+		r.rawBuf.WriteString(text)
+	}
 	return r
 }
 
@@ -199,6 +208,10 @@ func (r *builder) Phoneme(text string, alphabet Alphabet, ph string) Builder {
 
 func (r builder) String() string {
 	return fmt.Sprintf("<speak>%s</speak>", r.buf.String())
+}
+
+func (r builder) Raw() string {
+	return r.rawBuf.String()
 }
 
 func NewBuilder() Builder {
